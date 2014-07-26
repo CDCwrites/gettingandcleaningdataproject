@@ -48,8 +48,8 @@ run_analysis <- function( directory = NA ) {
         
         # RECORD TIME dataset downloaded
         dateDownloaded <- date()
-        print("downloaded zipfile: UCI HAR Dataset.zip")
-        print(date())
+        write("downloaded zipfile: UCI HAR Dataset.zip", "")
+        write(date(), "")
         
         # unzip file
         unzip( zipFileName )
@@ -82,43 +82,47 @@ run_analysis <- function( directory = NA ) {
     studyActivities <- rbind( getActivity1, getActivity2 )
     colnames(studyActivities) <- "activity"
     # translate activity-index to activity-string
-    tmp <- as.character(unlist(getActivityLabels$activity))    
+    tmpLabels <- as.character(unlist(getActivityLabels$activity))    
     for ( i in 1:nrow(studyActivities )) {
-        studyActivities[i, "activity"] <- tmp[ as.numeric(studyActivities[i, "activity"]) ]
+        studyActivities[i, "activity"] <- tmpLabels[ as.numeric(studyActivities[i, "activity"]) ]
     }
         
     # combine trained-study and study participants moves
     studyMoves <- rbind( getMoves1, getMoves2 )
-    # create descriptive column names 
-    tmp <- getFeatures[ , "featurename"]
-    tmp <- gsub("[Bb]odybody", "", tmp)
-    tmp <- tolower(tmp)
-    tmp <- gsub("[Bb]ody", "", tmp)
-    tmp <- gsub("-", " ", tmp)
-    tmp <- gsub("^[t]acc", "acceleration time ", tmp)
-    tmp <- gsub("^[f]acc", "acceleration frequency ", tmp)
-    tmp <- gsub("^[f]", "frequency ", tmp)
-    tmp <- gsub("^[t]", "time ", tmp)
-    tmp <- gsub("time gravityacc ", "time gravity acceleration ", tmp)
-    colnames(studyMoves) <- tmp
+    # Use preferred R naming convention in column names
+    # https://google-styleguide.googlecode.com/svn/trunk/Rguide.xml
+    tmpFeatures <- getFeatures[ , "featurename"]
+    tmpFeatures <- gsub("[Bb]odybody", "", tmpFeatures) # remove "body" strings
+    tmpFeatures <- gsub("[Bb]ody", "", tmpFeatures)
+    tmpFeatures <- gsub("-", ".", tmpFeatures)  
+    tmpFeatures <- tolower(tmpFeatures)
+    tmpFeatures <- gsub("^[t]acc", "acceleration\\.time\\.", tmpFeatures)
+    tmpFeatures <- gsub("^[f]acc", "acceleration\\.frequency\\.", tmpFeatures)
+    tmpFeatures <- gsub("^[f]", "frequency\\.", tmpFeatures)
+    tmpFeatures <- gsub("^[t]", "time\\.", tmpFeatures)
+    tmpFeatures <- gsub("\\,", "\\.", tmpFeatures)
+    tmpFeatures <- gsub("\\.\\.", "\\.", tmpFeatures)
+    tmpFeatures <- gsub("()", "", tmpFeatures)
+    
+    colnames(studyMoves) <- tmpFeatures
     
     # make new tidydataset of analogous tables
     tidyDataSet <- cbind( cbind( studyPersons, studyActivities ), studyMoves)
     
     # extract person, activity, and mean and standard deviation columns from tidydataset
     dataSubset <- tidyDataSet[ , 1:2 ]
-    tmp <- c( grep ("mean()", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
-    df <- tidyDataSet[ , tmp]
-    tmp2 <- c( grep ("std()", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
-    df2 <- tidyDataSet[ , tmp2]
+    findMeans <- c( grep ("\\.mean", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
+    df <- tidyDataSet[ , findMeans]    
+    findStds <- c( grep ("\\.std", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
+    df2 <- tidyDataSet[ , findStds]
     newTidyDataSet <- cbind( cbind( dataSubset, df ), df2)
     
     # calculate means and remove duplicate cols
-    aggregateData <- aggregate.data.frame(newTidyDataSet, by=list(activitygroup=newTidyDataSet$activity, participantgroup=newTidyDataSet$participant), FUN=mean, na.rm=TRUE, subset=newTidyDataSet[ , 3:ncols( newTidyDataSet )])
-    df <- aggregateData[ , 1:2]
-    colnames(df) <- c("activity", "participant")
-    df2 <- aggregateData[ , 5:ncol( aggregateData )] 
-    aggregateData <- cbind( df, df2 )
+    aggregateData <- aggregate.data.frame(newTidyDataSet, by=list(activitygroup=newTidyDataSet$activity, participantgroup=newTidyDataSet$participant), FUN=mean, na.rm=TRUE )
+    firstTwoCol <- aggregateData[ , 1:2]
+    colnames(firstTwoCol) <- c("activity", "participant")
+    restOfCol <- aggregateData[ , 5:ncol(aggregateData)] 
+    aggregateData <- cbind( firstTwoCol, restOfCol )
     
     # write newTidyDataSet to file under "Project" directory
     setwd( file.path( mainDir, newProjectDir ))

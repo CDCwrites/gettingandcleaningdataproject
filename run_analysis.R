@@ -102,7 +102,7 @@ run_analysis <- function( directory = NA ) {
     tmpFeatures <- gsub("^[t]", "time\\.", tmpFeatures)
     tmpFeatures <- gsub("\\,", "\\.", tmpFeatures)
     tmpFeatures <- gsub("\\.\\.", "\\.", tmpFeatures)
-    tmpFeatures <- gsub("()", "", tmpFeatures)
+ #   tmpFeatures <- gsub("()", "", tmpFeatures)
     
     colnames(studyMoves) <- tmpFeatures
     
@@ -111,9 +111,9 @@ run_analysis <- function( directory = NA ) {
     
     # extract person, activity, and mean and standard deviation columns from tidydataset
     dataSubset <- tidyDataSet[ , 1:2 ]
-    findMeans <- c( grep ("\\.mean", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
+    findMeans <- c( grep ("mean()", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
     df <- tidyDataSet[ , findMeans]    
-    findStds <- c( grep ("\\.std", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
+    findStds <- c( grep ("std()", colnames(tidyDataSet), fixed=TRUE), grep ("std()", colnames(tidyDataSet), fixed=TRUE))
     df2 <- tidyDataSet[ , findStds]
     newTidyDataSet <- cbind( cbind( dataSubset, df ), df2)
     
